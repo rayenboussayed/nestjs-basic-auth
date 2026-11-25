@@ -5,10 +5,10 @@ Minimal, secure NestJS Basic auth module wrapping the [`basic-auth`](https://www
 ## Installation
 
 ```sh
-npm install nestjs-basic-auth basic-auth @nestjs/common
+npm install nestjs-basic-auth @nestjs/common @nestjs/core zod
 ```
 
-`@nestjs/core` is a runtime dependency (the guard uses its `Reflector`); `@nestjs/platform-express` is a dev dependency used by the tests, which start a real HTTP server. Install your preferred HTTP platform at runtime for the app itself.
+`@nestjs/common`, `@nestjs/core` (used for `Reflector`) and `zod` are peer dependencies provided by the host app; `basic-auth` and `jutilities` are direct dependencies. `@nestjs/platform-express` is a dev dependency used by the tests, which start a real HTTP server — install your preferred HTTP platform at runtime for the app itself.
 
 ## Quick start
 

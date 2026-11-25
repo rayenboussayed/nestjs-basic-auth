@@ -20,7 +20,8 @@ Standalone npm package, not a monorepo. Public API is `src/index.ts`; `dist/` is
 - Strict TS: `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax`, legacy Nest decorators. Keep the explicit `reject(response): never` — TS does not infer `never` for throwing methods and `canActivate` needs it to narrow `credentials`.
 - Credentials are `name`/`pass` everywhere: env `AUTH_NAME`/`AUTH_PASS`/`AUTH_REALM` (zod-parsed at import in `src/environment.ts`), `headerNames: { name, pass }` (defaults `x-auth-name`/`x-auth-pass`), and `body.auth.name`/`auth.pass` only when `body: true`. Do not reintroduce `username`/`password`.
 - `@SkipBasicAuth()` uses `SKIP_BASIC_AUTH_KEY`; handler metadata wins over class metadata and explicit `false` opts back in. Skipped routes must not set `req.user` or emit `WWW-Authenticate`. Unit fake contexts without `getHandler`/`getClass` must stay protected.
-- `Reflector` is imported from `@nestjs/core` (runtime dependency) but is `@Optional()` with a `new Reflector()` default so manual `new BasicAuthGuard()` works.
+- `@nestjs/common`, `@nestjs/core`, and `zod` are peerDependencies (installed here via npm's auto-install); `basic-auth` and `jutilities` are the only direct dependencies.
+- `Reflector` is imported from `@nestjs/core` (peer dependency) but is `@Optional()` with a `new Reflector()` default so manual `new BasicAuthGuard()` works.
 - `isEmptyString(undefined)` from `jutilities/is` returns `false` — check for `undefined` before calling `parse`. Avoid `jutilities/json` (its superjson handler uses `new Function`); use subpaths such as `jutilities/is`, `jutilities/to`, `jutilities/node/hash`.
 - Node lowercases incoming headers; `readHeader` looks up the lowercase name.
 
