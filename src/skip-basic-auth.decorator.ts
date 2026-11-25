@@ -23,7 +23,7 @@ export const SKIP_BASIC_AUTH_KEY = "nestjs-basic-auth:skip";
  * @example
  * ```ts
  * import { Controller, Get } from "@nestjs/common";
- * import { SkipBasicAuth } from "nestjs-basic-auth";
+ * import { SkipBasicAuth } from "nest-basic-auth";
  *
  * @Controller("health")
  * export class HealthController {

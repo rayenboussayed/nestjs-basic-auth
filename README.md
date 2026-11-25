@@ -1,11 +1,11 @@
-# nestjs-basic-auth
+# nest-basic-auth
 
 Minimal, secure NestJS Basic auth module wrapping the [`basic-auth`](https://www.npmjs.com/package/basic-auth) npm package.
 
 ## Installation
 
 ```sh
-npm install nestjs-basic-auth @nestjs/common @nestjs/core zod
+npm install nest-basic-auth @nestjs/common @nestjs/core zod
 ```
 
 `@nestjs/common`, `@nestjs/core` (used for `Reflector`) and `zod` are peer dependencies provided by the host app; `basic-auth` and `jutilities` are direct dependencies. `@nestjs/platform-express` is a dev dependency used by the tests, which start a real HTTP server — install your preferred HTTP platform at runtime for the app itself.
@@ -17,7 +17,7 @@ Environment-based (default) — set `AUTH_NAME` and `AUTH_PASS`:
 ```ts
 // app.module.ts
 import { Module } from "@nestjs/common";
-import { BasicAuthModule } from "nestjs-basic-auth";
+import { BasicAuthModule } from "nest-basic-auth";
 
 @Module({
   imports: [BasicAuthModule.forRoot()],
@@ -25,7 +25,7 @@ import { BasicAuthModule } from "nestjs-basic-auth";
 export class AppModule {}
 
 // main.ts
-import { BasicAuthGuard } from "nestjs-basic-auth";
+import { BasicAuthGuard } from "nest-basic-auth";
 
 app.useGlobalGuards(new BasicAuthGuard());
 ```
@@ -34,7 +34,7 @@ Options-based — pass credentials, realm or header on the guard instance:
 
 ```ts
 import { NestFactory } from "@nestjs/core";
-import { BasicAuthGuard, BasicAuthModule } from "nestjs-basic-auth";
+import { BasicAuthGuard, BasicAuthModule } from "nest-basic-auth";
 
 @Module({
   imports: [BasicAuthModule.forRoot()],
@@ -57,7 +57,7 @@ Routes that must answer without credentials (health checks, webhooks) can opt ou
 
 ```ts
 import { Controller, Get } from "@nestjs/common";
-import { SkipBasicAuth } from "nestjs-basic-auth";
+import { SkipBasicAuth } from "nest-basic-auth";
 
 @Controller("health")
 export class HealthController {

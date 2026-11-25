@@ -55,6 +55,6 @@ key to `false` with `SetMetadata(SKIP_BASIC_AUTH_KEY, false)`.
 **Example**  
 ```ts
 import { Controller, Get } from "@nestjs/common";
-import { SkipBasicAuth } from "nestjs-basic-auth";
+import { SkipBasicAuth } from "nest-basic-auth";
 src: src/skip-basic-auth.decorator.ts:38  
 dist: dist/skip-basic-auth.decorator.js:36

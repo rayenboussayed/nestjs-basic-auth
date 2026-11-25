@@ -1,5 +1,5 @@
 {
-  "name": "nestjs-basic-auth",
+  "name": "nest-basic-auth",
   "version": "1.0.0",
   "description": "Minimal, secure NestJS Basic auth module (RFC 7617) — like fastify-basic-auth and Hono's basicAuth middleware.",
   "main": "dist/index.js",
