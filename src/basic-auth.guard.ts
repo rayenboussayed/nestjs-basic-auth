@@ -122,7 +122,12 @@ export class BasicAuthGuard implements CanActivate {
     const targets = [handler, controller].filter(
       (target): target is NonNullable<typeof target> => target !== undefined,
     );
-    return this.reflector.getAllAndOverride<boolean>(SKIP_BASIC_AUTH_KEY, targets) === true;
+    return (
+      this.reflector.getAllAndOverride<boolean>(
+        SKIP_BASIC_AUTH_KEY,
+        targets,
+      ) === true
+    );
   }
 
   private resolveCredentials({ headers, body }: AuthenticatedRequest) {

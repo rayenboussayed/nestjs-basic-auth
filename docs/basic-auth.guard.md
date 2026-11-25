@@ -64,7 +64,7 @@ dist: dist/basic-auth.guard.js:50
 Constant-time check against every expected pair; both comparisons always run.
 
 **Kind**: instance method of [<code>BasicAuthGuard</code>](#BasicAuthGuard)  
-src: src/basic-auth.guard.ts:151  
+src: src/basic-auth.guard.ts:156  
 dist: dist/basic-auth.guard.js:109
 <a name="BASIC_AUTH_OPTIONS"></a>
 
