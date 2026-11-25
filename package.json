@@ -34,7 +34,7 @@
     "test:perf": "vitest run test/perf",
     "test:memory": "NODE_OPTIONS=--expose-gc vitest run test/memory",
     "test:coverage": "vitest run --coverage",
-    "check": "npm run typecheck && npm run lint && npm run build && npm test",
+    "check": "npm run typecheck && npm run lint && npm run build && npm test && mdaics",
     "prepare": "husky",
     "lint": "eslint . --max-warnings 0"
   },
