@@ -8,7 +8,7 @@ import { BasicAuthGuard, BasicAuthModule } from "../../src/index.js";
 @Controller("protected")
 class ProtectedController {
   @Get()
-  hello(): string {
+  hello() {
     return "hello";
   }
 }
@@ -17,7 +17,7 @@ class ProtectedController {
 class ProtectedBodyController {
   @Post()
   @HttpCode(HttpStatus.OK)
-  hello(): string {
+  hello() {
     return "hello";
   }
 }
@@ -34,7 +34,7 @@ class TestAppModule {}
 })
 class BodyAppModule {}
 
-const encode = (text: string): string => Buffer.from(text, "utf8").toString("base64");
+const encode = (text: string) => Buffer.from(text, "utf8").toString("base64");
 
 describe("BasicAuthModule (e2e)", () => {
   let baseUrl: string;
@@ -78,23 +78,23 @@ describe("BasicAuthModule (e2e)", () => {
     expect(res.status).toBe(200);
   });
 
-  it("accepts credentials from the custom x-auth-username/x-auth-password headers", async () => {
+  it("accepts credentials from the custom x-auth-name/x-auth-pass headers", async () => {
     const res = await fetch(`${baseUrl}/protected`, {
-      headers: { "x-auth-username": "user", "x-auth-password": "pass" },
+      headers: { "x-auth-name": "user", "x-auth-pass": "pass" },
     });
     expect(res.status).toBe(200);
   });
 
   it("prefers the Authorization header over the custom headers", async () => {
     const res = await fetch(`${baseUrl}/protected`, {
-      headers: { authorization: `Basic ${encode("user:pass")}`, "x-auth-username": "wrong", "x-auth-password": "wrong" },
+      headers: { authorization: `Basic ${encode("user:pass")}`, "x-auth-name": "wrong", "x-auth-pass": "wrong" },
     });
     expect(res.status).toBe(200);
   });
 
   it("rejects when the custom headers are present but do not match", async () => {
     const res = await fetch(`${baseUrl}/protected`, {
-      headers: { "x-auth-username": "user", "x-auth-password": "wrong" },
+      headers: { "x-auth-name": "user", "x-auth-pass": "wrong" },
     });
     expect(res.status).toBe(401);
     expect(res.headers.get("www-authenticate")).toMatch(/Basic/i);
@@ -102,7 +102,7 @@ describe("BasicAuthModule (e2e)", () => {
 
   it("rejects when only one custom header is present", async () => {
     const res = await fetch(`${baseUrl}/protected`, {
-      headers: { "x-auth-username": "user" },
+      headers: { "x-auth-name": "user" },
     });
     expect(res.status).toBe(401);
   });
@@ -156,11 +156,11 @@ describe("BasicAuthModule (e2e, body credentials)", () => {
     await app.close();
   });
 
-  it("accepts credentials from body.auth.username/password on a POST request", async () => {
+  it("accepts credentials from body.auth.name/pass on a POST request", async () => {
     const res = await fetch(`${baseUrl}/protected`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ auth: { username: "user", password: "pass" } }),
+      body: JSON.stringify({ auth: { name: "user", pass: "pass" } }),
     });
     expect(res.status).toBe(200);
   });

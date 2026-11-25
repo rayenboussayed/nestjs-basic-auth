@@ -9,7 +9,7 @@ async function importModules() {
   return { BasicAuthModule, BasicAuthGuard, Test };
 }
 
-function httpContext(headers: Record<string, string>): ExecutionContext {
+function httpContext(headers: Record<string, string>) {
   return {
     switchToHttp: () => ({
       getRequest: () => ({ headers }),
@@ -37,16 +37,16 @@ describe("BasicAuthModule", () => {
   });
 
   it("resolves with env credentials when forRoot() is called without options", async () => {
-    process.env.AUTH_USERNAME = "envuser";
-    process.env.AUTH_PASSWORD = "envpass";
+    process.env.AUTH_NAME = "envuser";
+    process.env.AUTH_PASS = "envpass";
     try {
       vi.resetModules();
       const { BasicAuthModule, BasicAuthGuard, Test } = await importModules();
       const moduleRef = await Test.createTestingModule({ imports: [BasicAuthModule.forRoot()] }).compile();
       expect(moduleRef.get(BasicAuthGuard)).toBeInstanceOf(BasicAuthGuard);
     } finally {
-      delete process.env.AUTH_USERNAME;
-      delete process.env.AUTH_PASSWORD;
+      delete process.env.AUTH_NAME;
+      delete process.env.AUTH_PASS;
     }
   });
 
@@ -56,7 +56,7 @@ describe("BasicAuthModule", () => {
       imports: [
         BasicAuthModule.forRoot({
           credentials: { name: "u", pass: "p" },
-          headerNames: { username: "x-user", password: "x-pass" },
+          headerNames: { name: "x-user", pass: "x-pass" },
           body: true,
         }),
       ],
@@ -74,14 +74,14 @@ describe("BasicAuthModule", () => {
   });
 
   it("wires the default custom headers into the guard from forRoot() without options", async () => {
-    process.env.AUTH_USERNAME = "envuser";
-    process.env.AUTH_PASSWORD = "envpass";
+    process.env.AUTH_NAME = "envuser";
+    process.env.AUTH_PASS = "envpass";
     try {
       vi.resetModules();
       const { BasicAuthModule, BasicAuthGuard, Test } = await importModules();
       const moduleRef = await Test.createTestingModule({ imports: [BasicAuthModule.forRoot()] }).compile();
       const guard = moduleRef.get(BasicAuthGuard);
-      const request = { headers: { "x-auth-username": "envuser", "x-auth-password": "envpass" } };
+      const request = { headers: { "x-auth-name": "envuser", "x-auth-pass": "envpass" } };
       const context = {
         switchToHttp: () => ({
           getRequest: () => request,
@@ -91,8 +91,8 @@ describe("BasicAuthModule", () => {
       } as unknown as ExecutionContext;
       expect(guard.canActivate(context)).toBe(true);
     } finally {
-      delete process.env.AUTH_USERNAME;
-      delete process.env.AUTH_PASSWORD;
+      delete process.env.AUTH_NAME;
+      delete process.env.AUTH_PASS;
     }
   });
 
@@ -109,10 +109,10 @@ describe("BasicAuthModule", () => {
   });
 
   it("rejects requests when forRoot() has no credentials (options and env both empty)", async () => {
-    const previousUsername = process.env.AUTH_USERNAME;
-    const previousPassword = process.env.AUTH_PASSWORD;
-    delete process.env.AUTH_USERNAME;
-    delete process.env.AUTH_PASSWORD;
+    const previousName = process.env.AUTH_NAME;
+    const previousPass = process.env.AUTH_PASS;
+    delete process.env.AUTH_NAME;
+    delete process.env.AUTH_PASS;
     try {
       vi.resetModules();
       const { BasicAuthModule, BasicAuthGuard, Test } = await importModules();
@@ -121,8 +121,8 @@ describe("BasicAuthModule", () => {
       const ctx = httpContext({ authorization: `Basic ${Buffer.from("user:pass").toString("base64")}` });
       expect(() => guard.canActivate(ctx)).toThrow(UnauthorizedException);
     } finally {
-      if (previousUsername !== undefined) process.env.AUTH_USERNAME = previousUsername;
-      if (previousPassword !== undefined) process.env.AUTH_PASSWORD = previousPassword;
+      if (previousName !== undefined) process.env.AUTH_NAME = previousName;
+      if (previousPass !== undefined) process.env.AUTH_PASS = previousPass;
     }
   });
 });

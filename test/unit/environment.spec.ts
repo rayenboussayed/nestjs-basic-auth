@@ -3,8 +3,8 @@ import { EnvironmentSchema } from "../../src/environment.js";
 
 describe("EnvironmentSchema", () => {
   it("parses and trims the auth credentials and realm", () => {
-    expect(EnvironmentSchema.parse({ AUTH_USERNAME: " admin ", AUTH_PASSWORD: " s3cret ", AUTH_REALM: " app " })).toEqual(
-      { AUTH_USERNAME: "admin", AUTH_PASSWORD: "s3cret", AUTH_REALM: "app" },
+    expect(EnvironmentSchema.parse({ AUTH_NAME: " admin ", AUTH_PASS: " s3cret ", AUTH_REALM: " app " })).toEqual(
+      { AUTH_NAME: "admin", AUTH_PASS: "s3cret", AUTH_REALM: "app" },
     );
   });
 
@@ -13,12 +13,12 @@ describe("EnvironmentSchema", () => {
   });
 
   it("rejects empty or whitespace-only values after trimming", () => {
-    expect(() => EnvironmentSchema.parse({ AUTH_USERNAME: "   " })).toThrow();
-    expect(() => EnvironmentSchema.parse({ AUTH_PASSWORD: "" })).toThrow();
+    expect(() => EnvironmentSchema.parse({ AUTH_NAME: "   " })).toThrow();
+    expect(() => EnvironmentSchema.parse({ AUTH_PASS: "" })).toThrow();
     expect(() => EnvironmentSchema.parse({ AUTH_REALM: "" })).toThrow();
   });
 
   it("rejects non-string values", () => {
-    expect(() => EnvironmentSchema.parse({ AUTH_USERNAME: 42 })).toThrow();
+    expect(() => EnvironmentSchema.parse({ AUTH_NAME: 42 })).toThrow();
   });
 });

@@ -1,26 +1,16 @@
 <a name="BasicAuthModule"></a>
 
 ## BasicAuthModule
-Minimal NestJS module for the Basic auth guard.
-
-`forRoot(options?)` returns a `DynamicModule` that provides `BasicAuthGuard`
-with the resolved options (via `useFactory`, so the guard carries them
-regardless of how Nest instantiates it).
+NestJS module that provides and exports [BasicAuthGuard](BasicAuthGuard) configured by `forRoot()`.
 
 **Kind**: global variable  
-src: src/basic-auth.module.ts:13  
-dist: dist/basic-auth.module.js:17
+src: src/basic-auth.module.ts:7  
+dist: dist/basic-auth.module.js:11
 <a name="BasicAuthModule.forRoot"></a>
 
-### BasicAuthModule.forRoot(options) ⇒ <code>DynamicModule</code>
-Registers `BasicAuthGuard` as a provider carrying `options`.
+### BasicAuthModule.forRoot() ⇒ <code>{ module: typeof BasicAuthModule; providers: (typeof BasicAuthGuard \| { provide: string; useValue: BasicAuthOptions; })[]; exports: (string \| typeof BasicAuthGuard)[]; }</code>
+Provides and exports `BasicAuthGuard` configured with `options`.
 
 **Kind**: static method of [<code>BasicAuthModule</code>](#BasicAuthModule)  
-**Returns**: <code>DynamicModule</code> - A `DynamicModule` exporting `BasicAuthGuard`.  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| options | <code>BasicAuthOptions</code> | Guard options; omitted values fall back to the environment/defaults. |
-
-src: src/basic-auth.module.ts:19  
-dist: dist/basic-auth.module.js:23
+src: src/basic-auth.module.ts:9  
+dist: dist/basic-auth.module.js:13

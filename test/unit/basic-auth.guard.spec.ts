@@ -10,17 +10,11 @@ interface TestRequest {
   user?: { name: string; pass: string };
 }
 
-interface TestContext {
-  context: ExecutionContext;
-  request: TestRequest;
-  wwwAuthenticate: string[];
-}
-
-function createContext(headers: Record<string, string | string[]>, body?: unknown): TestContext {
+function createContext(headers: Record<string, string | string[]>, body?: unknown) {
   const request: TestRequest = { headers, body };
   const wwwAuthenticate: string[] = [];
   const response = {
-    setHeader: (name: string, value: string): void => {
+    setHeader: (name: string, value: string) => {
       if (name.toLowerCase() === "www-authenticate") {
         wwwAuthenticate.push(value);
       }
@@ -36,7 +30,7 @@ function createContext(headers: Record<string, string | string[]>, body?: unknow
   return { context, request, wwwAuthenticate };
 }
 
-const encode = (text: string): string => Buffer.from(text, "utf8").toString("base64");
+const encode = (text: string) => Buffer.from(text, "utf8").toString("base64");
 
 describe("BasicAuthGuard", () => {
   it("accepts valid credentials and exposes them via req.user", () => {
@@ -78,25 +72,25 @@ describe("BasicAuthGuard", () => {
     expect(() => guard.canActivate(missing.context)).toThrow(UnauthorizedException);
   });
 
-  it("falls back to the AUTH_USERNAME/AUTH_PASSWORD environment credentials", () => {
-    const previousUsername = environment.AUTH_USERNAME;
-    const previousPassword = environment.AUTH_PASSWORD;
-    environment.AUTH_USERNAME = "envuser";
-    environment.AUTH_PASSWORD = "envpass";
+  it("falls back to the AUTH_NAME/AUTH_PASS environment credentials", () => {
+    const previousName = environment.AUTH_NAME;
+    const previousPass = environment.AUTH_PASS;
+    environment.AUTH_NAME = "envuser";
+    environment.AUTH_PASS = "envpass";
     try {
       const guard = new BasicAuthGuard();
       const { context } = createContext({ authorization: `Basic ${encode("envuser:envpass")}` });
       expect(guard.canActivate(context)).toBe(true);
     } finally {
-      if (previousUsername === undefined) {
-        delete environment.AUTH_USERNAME;
+      if (previousName === undefined) {
+        delete environment.AUTH_NAME;
       } else {
-        environment.AUTH_USERNAME = previousUsername;
+        environment.AUTH_NAME = previousName;
       }
-      if (previousPassword === undefined) {
-        delete environment.AUTH_PASSWORD;
+      if (previousPass === undefined) {
+        delete environment.AUTH_PASS;
       } else {
-        environment.AUTH_PASSWORD = previousPassword;
+        environment.AUTH_PASS = previousPass;
       }
     }
   });
@@ -115,7 +109,7 @@ describe("BasicAuthGuard", () => {
     expect(() => guard.canActivate(noMatch.context)).toThrow(UnauthorizedException);
   });
 
-  it("accepts empty username and password when configured", () => {
+  it("accepts empty name and pass when configured", () => {
     const guard = new BasicAuthGuard({ credentials: { name: "", pass: "" } });
     const { context } = createContext({ authorization: `Basic ${encode(":")}` });
     expect(guard.canActivate(context)).toBe(true);
@@ -130,14 +124,14 @@ describe("BasicAuthGuard", () => {
       expect(() => guard.canActivate(context)).toThrow(UnauthorizedException);
       expect(wwwAuthenticate[0]).toContain('Basic realm="app"');
 
-      const envGuard = new BasicAuthGuard({ credentials: { name: "u", pass: "p" } });
       environment.AUTH_REALM = "from-env";
+      const envGuard = new BasicAuthGuard({ credentials: { name: "u", pass: "p" } });
       const { context: envContext, wwwAuthenticate: envChallenges } = createContext({});
       expect(() => envGuard.canActivate(envContext)).toThrow(UnauthorizedException);
       expect(envChallenges[0]).toContain('Basic realm="from-env"');
 
-      const defaultGuard = new BasicAuthGuard({ credentials: { name: "u", pass: "p" } });
       environment.AUTH_REALM = undefined;
+      const defaultGuard = new BasicAuthGuard({ credentials: { name: "u", pass: "p" } });
       const { context: defaultContext, wwwAuthenticate: defaultChallenges } = createContext({});
       expect(() => defaultGuard.canActivate(defaultContext)).toThrow(UnauthorizedException);
       expect(defaultChallenges[0]).toContain('Basic realm="Secure Area"');
@@ -150,9 +144,9 @@ describe("BasicAuthGuard", () => {
     }
   });
 
-  it("falls back to the default x-auth-username/x-auth-password headers", () => {
+  it("falls back to the default x-auth-name/x-auth-pass headers", () => {
     const guard = new BasicAuthGuard({ credentials: { name: "u", pass: "p" } });
-    const { context, request } = createContext({ "x-auth-username": "u", "x-auth-password": "p" });
+    const { context, request } = createContext({ "x-auth-name": "u", "x-auth-pass": "p" });
     expect(guard.canActivate(context)).toBe(true);
     expect(request.user).toEqual({ name: "u", pass: "p" });
   });
@@ -161,8 +155,8 @@ describe("BasicAuthGuard", () => {
     const guard = new BasicAuthGuard({ credentials: { name: "u", pass: "p" } });
     const { context, request } = createContext({
       authorization: `Basic ${encode("u:p")}`,
-      "x-auth-username": "wrong",
-      "x-auth-password": "wrong",
+      "x-auth-name": "wrong",
+      "x-auth-pass": "wrong",
     });
     expect(guard.canActivate(context)).toBe(true);
     expect(request.user).toEqual({ name: "u", pass: "p" });
@@ -170,41 +164,41 @@ describe("BasicAuthGuard", () => {
 
   it("prefers custom headers over the body", () => {
     const guard = new BasicAuthGuard({ credentials: { name: "u", pass: "p" }, body: true });
-    const { context, request } = createContext({ "x-auth-username": "u", "x-auth-password": "p" }, { auth: { username: "wrong", password: "wrong" } });
+    const { context, request } = createContext({ "x-auth-name": "u", "x-auth-pass": "p" }, { auth: { name: "wrong", pass: "wrong" } });
     expect(guard.canActivate(context)).toBe(true);
     expect(request.user).toEqual({ name: "u", pass: "p" });
   });
 
-  it("reads credentials from body.auth.username/password when body: true", () => {
+  it("reads credentials from body.auth.name/pass when body: true", () => {
     const guard = new BasicAuthGuard({ credentials: { name: "u", pass: "p" }, body: true });
-    const { context, request } = createContext({}, { auth: { username: "u", password: "p" } });
+    const { context, request } = createContext({}, { auth: { name: "u", pass: "p" } });
     expect(guard.canActivate(context)).toBe(true);
     expect(request.user).toEqual({ name: "u", pass: "p" });
   });
 
   it("rejects body credentials when the body option is not set", () => {
     const guard = new BasicAuthGuard({ credentials: { name: "u", pass: "p" } });
-    const { context } = createContext({}, { auth: { username: "u", password: "p" } });
+    const { context } = createContext({}, { auth: { name: "u", pass: "p" } });
     expect(() => guard.canActivate(context)).toThrow(UnauthorizedException);
   });
 
   it("falls through to the body when custom headers are incomplete", () => {
     const guard = new BasicAuthGuard({ credentials: { name: "u", pass: "p" }, body: true });
-    const { context, request } = createContext({ "x-auth-username": "u" }, { auth: { username: "u", password: "p" } });
+    const { context, request } = createContext({ "x-auth-name": "u" }, { auth: { name: "u", pass: "p" } });
     expect(guard.canActivate(context)).toBe(true);
     expect(request.user).toEqual({ name: "u", pass: "p" });
   });
 
   it("ignores body credentials with non-string values", () => {
     const guard = new BasicAuthGuard({ credentials: { name: "u", pass: "p" }, body: true });
-    const { context } = createContext({}, { auth: { username: 42, password: "p" } });
+    const { context } = createContext({}, { auth: { name: 42, pass: "p" } });
     expect(() => guard.canActivate(context)).toThrow(UnauthorizedException);
   });
 
   it("reads credentials from custom headerNames when configured", () => {
     const guard = new BasicAuthGuard({
       credentials: { name: "u", pass: "p" },
-      headerNames: { username: "x-user", password: "x-pass" },
+      headerNames: { name: "x-user", pass: "x-pass" },
     });
     const { context, request } = createContext({ "x-user": "u", "x-pass": "p" });
     expect(guard.canActivate(context)).toBe(true);
@@ -215,15 +209,15 @@ describe("BasicAuthGuard", () => {
 
   it("treats empty custom header values as absent (no credentials from the custom headers)", () => {
     const guard = new BasicAuthGuard({ credentials: { name: "u", pass: "p" } });
-    const { context } = createContext({ "x-auth-username": "u", "x-auth-password": "" });
+    const { context } = createContext({ "x-auth-name": "u", "x-auth-pass": "" });
     expect(() => guard.canActivate(context)).toThrow(UnauthorizedException);
   });
 
   it("rejects custom headers that are present but wrong, even with valid body credentials", () => {
     const guard = new BasicAuthGuard({ credentials: { name: "u", pass: "p" }, body: true });
     const { context } = createContext(
-      { "x-auth-username": "wrong", "x-auth-password": "wrong" },
-      { auth: { username: "u", password: "p" } },
+      { "x-auth-name": "wrong", "x-auth-pass": "wrong" },
+      { auth: { name: "u", pass: "p" } },
     );
     expect(() => guard.canActivate(context)).toThrow(UnauthorizedException);
   });
@@ -232,8 +226,8 @@ describe("BasicAuthGuard", () => {
     const guard = new BasicAuthGuard({ credentials: { name: "u", pass: "p" } });
     const { context } = createContext({
       authorization: "Bearer token",
-      "x-auth-username": "u",
-      "x-auth-password": "p",
+      "x-auth-name": "u",
+      "x-auth-pass": "p",
     });
     expect(() => guard.canActivate(context)).toThrow(UnauthorizedException);
   });
@@ -259,33 +253,33 @@ describe("BasicAuthGuard", () => {
     expect(request.user).toEqual({ name: "u", pass: "p" });
   });
 
-  it("rejects when only one of AUTH_USERNAME/AUTH_PASSWORD is set", () => {
-    const previousUsername = environment.AUTH_USERNAME;
-    const previousPassword = environment.AUTH_PASSWORD;
-    environment.AUTH_USERNAME = "envuser";
-    delete environment.AUTH_PASSWORD;
+  it("rejects when only one of AUTH_NAME/AUTH_PASS is set", () => {
+    const previousName = environment.AUTH_NAME;
+    const previousPass = environment.AUTH_PASS;
+    environment.AUTH_NAME = "envuser";
+    delete environment.AUTH_PASS;
     try {
       const guard = new BasicAuthGuard();
       const { context } = createContext({ authorization: `Basic ${encode("envuser:pass")}` });
       expect(() => guard.canActivate(context)).toThrow(UnauthorizedException);
     } finally {
-      if (previousUsername !== undefined) environment.AUTH_USERNAME = previousUsername;
-      if (previousPassword !== undefined) environment.AUTH_PASSWORD = previousPassword;
+      if (previousName !== undefined) environment.AUTH_NAME = previousName;
+      if (previousPass !== undefined) environment.AUTH_PASS = previousPass;
     }
   });
 
   it("rejects a valid header when no credentials are configured at all", () => {
-    const previousUsername = environment.AUTH_USERNAME;
-    const previousPassword = environment.AUTH_PASSWORD;
-    delete environment.AUTH_USERNAME;
-    delete environment.AUTH_PASSWORD;
+    const previousName = environment.AUTH_NAME;
+    const previousPass = environment.AUTH_PASS;
+    delete environment.AUTH_NAME;
+    delete environment.AUTH_PASS;
     try {
       const guard = new BasicAuthGuard();
       const { context } = createContext({ authorization: `Basic ${encode("user:pass")}` });
       expect(() => guard.canActivate(context)).toThrow(UnauthorizedException);
     } finally {
-      if (previousUsername !== undefined) environment.AUTH_USERNAME = previousUsername;
-      if (previousPassword !== undefined) environment.AUTH_PASSWORD = previousPassword;
+      if (previousName !== undefined) environment.AUTH_NAME = previousName;
+      if (previousPass !== undefined) environment.AUTH_PASS = previousPass;
     }
   });
 
@@ -315,7 +309,7 @@ describe("BasicAuthGuard", () => {
 
   it("rejects when provided credentials have different lengths than the expected pair", () => {
     const guard = new BasicAuthGuard({ credentials: { name: "user", pass: "pass" } });
-    const longerName = createContext({ authorization: `Basic ${encode("username:pass")}` });
+    const longerName = createContext({ authorization: `Basic ${encode("longername:pass")}` });
     expect(() => guard.canActivate(longerName.context)).toThrow(UnauthorizedException);
     const longerPass = createContext({ authorization: `Basic ${encode("user:passss")}` });
     expect(() => guard.canActivate(longerPass.context)).toThrow(UnauthorizedException);

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parse } from "basic-auth";
 
-const b64 = (value: string): string => Buffer.from(value, "utf8").toString("base64");
+const b64 = (value: string) => Buffer.from(value, "utf8").toString("base64");
 
 describe("parse (npm package)", () => {
   it("parses valid credentials and returns { name, pass }", () => {

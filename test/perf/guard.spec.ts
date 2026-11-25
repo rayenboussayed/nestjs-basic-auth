@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import { performance } from "node:perf_hooks";
 import { Buffer } from "node:buffer";
 import { timingSafeEqual } from "node:crypto";
@@ -6,10 +7,16 @@ import { UnauthorizedException } from "@nestjs/common";
 import { parse } from "basic-auth";
 import type { ExecutionContext } from "@nestjs/common";
 import { BasicAuthGuard } from "../../src/basic-auth.guard.js";
+import { SkipBasicAuth } from "../../src/skip-basic-auth.decorator.js";
+
+class PublicController {
+  @SkipBasicAuth()
+  publicRoute() {}
+}
 
 const header = `Basic ${Buffer.from("user:pass").toString("base64")}`;
 
-function averageMicros(fn: () => void, iterations: number, warmup = 1_000): number {
+function averageMicros(fn: () => void, iterations: number, warmup = 1_000) {
   for (let i = 0; i < warmup; i += 1) fn();
   const start = performance.now();
   for (let i = 0; i < iterations; i += 1) fn();
@@ -47,7 +54,7 @@ describe("performance", () => {
 
   it("runs the custom-header path fast", () => {
     const guard = new BasicAuthGuard({ credentials: { name: "user", pass: "pass" } });
-    const request = { headers: { "x-auth-username": "user", "x-auth-password": "pass" } };
+    const request = { headers: { "x-auth-name": "user", "x-auth-pass": "pass" } };
     const context = {
       switchToHttp: () => ({
         getRequest: () => request,
@@ -63,7 +70,7 @@ describe("performance", () => {
 
   it("runs the body path fast", () => {
     const guard = new BasicAuthGuard({ credentials: { name: "user", pass: "pass" }, body: true });
-    const request = { headers: {}, body: { auth: { username: "user", password: "pass" } } };
+    const request = { headers: {}, body: { auth: { name: "user", pass: "pass" } } };
     const context = {
       switchToHttp: () => ({
         getRequest: () => request,
@@ -100,7 +107,7 @@ describe("performance", () => {
 
   it("runs the custom-header path with body enabled fast (chain stops at source 2)", () => {
     const guard = new BasicAuthGuard({ credentials: { name: "user", pass: "pass" }, body: true });
-    const request = { headers: { "x-auth-username": "user", "x-auth-password": "pass" }, body: { auth: { username: "user", password: "pass" } } };
+    const request = { headers: { "x-auth-name": "user", "x-auth-pass": "pass" }, body: { auth: { name: "user", pass: "pass" } } };
     const context = {
       switchToHttp: () => ({
         getRequest: () => request,
@@ -111,6 +118,23 @@ describe("performance", () => {
     expect(guard.canActivate(context)).toBe(true);
     const us = averageMicros(() => guard.canActivate(context), 10_000);
     console.log(`guard.canActivate (custom headers + body enabled): ${us.toFixed(3)}µs/op`);
+    expect(us).toBeLessThan(200);
+  });
+
+  it("runs the public skip path fast", () => {
+    const guard = new BasicAuthGuard({ credentials: { name: "user", pass: "pass" } });
+    const context = {
+      switchToHttp: () => ({
+        getRequest: () => ({ headers: {} }),
+        getResponse: () => ({}),
+        getNext: () => ({}),
+      }),
+      getHandler: () => PublicController.prototype.publicRoute,
+      getClass: () => PublicController,
+    } as unknown as ExecutionContext;
+    expect(guard.canActivate(context)).toBe(true);
+    const us = averageMicros(() => guard.canActivate(context), 10_000);
+    console.log(`guard.canActivate (skip): ${us.toFixed(3)}µs/op`);
     expect(us).toBeLessThan(200);
   });
 

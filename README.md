@@ -8,11 +8,11 @@ Minimal, secure NestJS Basic auth module wrapping the [`basic-auth`](https://www
 npm install nestjs-basic-auth basic-auth @nestjs/common
 ```
 
-`@nestjs/core` and `@nestjs/platform-express` are dev dependencies of this repo (used by the tests, which start a real HTTP server); install your preferred HTTP platform at runtime for the app itself.
+`@nestjs/core` is a runtime dependency (the guard uses its `Reflector`); `@nestjs/platform-express` is a dev dependency used by the tests, which start a real HTTP server. Install your preferred HTTP platform at runtime for the app itself.
 
 ## Quick start
 
-Environment-based (default) — set `AUTH_USERNAME` and `AUTH_PASSWORD`:
+Environment-based (default) — set `AUTH_NAME` and `AUTH_PASS`:
 
 ```ts
 // app.module.ts
@@ -51,6 +51,26 @@ app.useGlobalGuards(
 
 The same instance works per route: `@UseGuards(new BasicAuthGuard({...}))`.
 
+### Public routes with `@SkipBasicAuth()`
+
+Routes that must answer without credentials (health checks, webhooks) can opt out of the guard:
+
+```ts
+import { Controller, Get } from "@nestjs/common";
+import { SkipBasicAuth } from "nestjs-basic-auth";
+
+@Controller("health")
+export class HealthController {
+  @Get()
+  @SkipBasicAuth()
+  check(): string {
+    return "ok";
+  }
+}
+```
+
+Put `@SkipBasicAuth()` on a controller to make all of its routes public. The decorator works with global guards, per-route guards, and guards provided by `BasicAuthModule.forRoot()` — it only needs Nest metadata, not dependency injection.
+
 ## API reference
 
 ### `BasicAuthGuard`
@@ -63,15 +83,21 @@ Constructor options:
 
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
-| `credentials` | `Credentials \| Credentials[]` | `environment` (`AUTH_USERNAME`/`AUTH_PASSWORD`) | Credentials accepted by the guard: one pair or a list. |
+| `credentials` | `Credentials \| Credentials[]` | `environment` (`AUTH_NAME`/`AUTH_PASS`) | Credentials accepted by the guard: one pair or a list. |
 | `realm` | `string` | `environment.AUTH_REALM`, then `"Secure Area"` | Realm included in the `WWW-Authenticate: Basic realm="..."` challenge. |
 | `header` | `string` | `"authorization"` | Name of the request header carrying the credentials. |
-| `headerNames` | `{ username: string; password: string }` | `{ username: "x-auth-username", password: "x-auth-password" }` | Header names for the fallback credentials; both string values must be present. |
-| `body` | `boolean` | `false` | Accept credentials from `body.auth.username` / `body.auth.password` when the header yields none. |
+| `headerNames` | `{ name: string; pass: string }` | `{ name: "x-auth-name", pass: "x-auth-pass" }` | Header names for the fallback credentials; both string values must be present. |
+| `body` | `boolean` | `false` | Accept credentials from `body.auth.name` / `body.auth.pass` when the header yields none. |
 
 ### `BasicAuthModule`
 
-- `BasicAuthModule.forRoot(options?: BasicAuthOptions): DynamicModule` — provides the guard via `useFactory`, so the guard carries the `forRoot` options.
+- `BasicAuthModule.forRoot(options?: BasicAuthOptions)` — registers the options token and provides/exports `BasicAuthGuard` with those options.
+
+### `SkipBasicAuth`
+
+- `SkipBasicAuth()` — decorator for route handlers or controllers; the guard skips Basic auth for marked routes.
+- `SKIP_BASIC_AUTH_KEY` — exported metadata key (`"nestjs-basic-auth:skip"`), useful for reads via `Reflector` or for opting back in with `SetMetadata(SKIP_BASIC_AUTH_KEY, false)`.
+- Handler-level metadata wins over controller-level metadata, so a single route in a public controller can be protected again by setting the key to `false`.
 
 ### Types
 
@@ -83,6 +109,7 @@ A generated, per-file version of this reference lives in [`docs/`](./docs):
 
 - [`docs/basic-auth.guard.md`](./docs/basic-auth.guard.md) — `BasicAuthGuard`, credential resolution, and comparison.
 - [`docs/basic-auth.module.md`](./docs/basic-auth.module.md) — `BasicAuthModule.forRoot()`.
+- [`docs/skip-basic-auth.decorator.md`](./docs/skip-basic-auth.decorator.md) — `SkipBasicAuth` and its metadata key.
 
 These pages are generated from the JSDoc in [`src/`](./src) by [mdaics](https://github.com/rayenboussayed/mdaics) and are committed — regenerate them with `npm run docs` instead of editing them by hand. Every documented symbol ends with `src:`/`dist:` pointer lines (file and line in the source and built output). Parameter types in the generated tables are resolved by the TypeScript compiler at generation time.
 
@@ -91,16 +118,17 @@ These pages are generated from the JSDoc in [`src/`](./src) by [mdaics](https://
 - Credentials are resolved in order: (1) the `authorization` header via `parse()` when the header is present; (2) the custom `headerNames` headers when both values are strings; (3) the body pair when `body: true`. If the standard header is present but malformed, the request is rejected.
 - `parse(header)` returns `{ name, pass }` on success, `undefined` when missing or malformed (e.g. wrong scheme, invalid base64, or no colon in the decoded value).
 - Comparison is constant-time (`timingSafeEqual` in `src/basic-auth.guard.ts`).
+- Routes decorated with `@SkipBasicAuth()` bypass the guard: `canActivate` returns `true` before any credential resolution, leaves `req.user` untouched, and emits no `WWW-Authenticate`.
 - Basic sends credentials base64-encoded — use HTTPS.
 
 ## Security notes
 
 - Failure responses are a 401 with an escaped `WWW-Authenticate: Basic realm="..."` challenge.
-- Constants are compared against all configured credentials without short-circuit and with length-padded buffers (`timingSafeEqual` in `src/basic-auth.guard.ts`) — response timing reveals neither valid usernames nor the expected password lengths.
+- Credentials are hashed with SHA-256 to fixed-length digests and compared with `timingSafeEqual` against all configured credentials without short-circuit (`src/basic-auth.guard.ts`) — response timing reveals neither valid names nor the expected pass lengths.
 - Body credentials travel in the request body rather than the standard challenge mechanism — use HTTPS/TLS and avoid logging request bodies.
 - Custom `headerNames` act as alternative credential carriers — treat them with the same secrecy as `Authorization`; avoid logging or proxying them, and restrict them to TLS.
 - Enabling `headerNames`/`body` broadens where credentials can leak (logs, caches, intermediaries) — pair with HTTPS and rate limiting.
-- `options.credentials` entries are validated at construction (zod schema in `src/basic-auth.guard.ts`); invalid entries throw immediately instead of failing with a 500 on the first request.
+- Only apply `@SkipBasicAuth()` to routes intended to be public: skipped routes perform no authentication and set no `req.user`, so downstream code must not assume an authenticated principal there.
 
 ## Development
 
@@ -122,8 +150,8 @@ npm run test:coverage
 
 ## Testing
 
-- `test/unit` — guard behavior (parse, realm, credentials lists, custom header), `parse` of the package, environment schema.
-- `test/integration` — `Test.createTestingModule` wiring via `BasicAuthModule.forRoot()`.
-- `test/e2e` — real server + global `fetch`: 401 + `WWW-Authenticate` on failure, 200 on success, 401 on wrong credentials.
+- `test/unit` — guard behavior (parse, realm, credentials lists, custom header), `@SkipBasicAuth` metadata semantics, `parse` of the package, environment schema.
+- `test/integration` — `Test.createTestingModule` wiring via `BasicAuthModule.forRoot()`, including skip metadata on the DI-provided guard.
+- `test/e2e` — real server + global `fetch`: 401 + `WWW-Authenticate` on failure, 200 on success, 401 on wrong credentials, public routes via `@SkipBasicAuth()`.
 - `test/perf` — micro-benchmarks: package `parse`, `timingSafeEqual` (node:crypto), the full guard paths — standard header, custom headers, and body (`node:perf_hooks`).
 - `test/memory` — heap usage across repeated guard calls (run with `NODE_OPTIONS=--expose-gc` for real GC; the `test:memory` script does this).
